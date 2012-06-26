@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime
 from flask import Flask, request, redirect, url_for, render_template, session, abort, flash, g
 from flask import send_from_directory
@@ -6,18 +7,34 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from werkzeug import secure_filename
 from werkzeug import generate_password_hash, check_password_hash
 
+from flaskext.uploads import (UploadSet, configure_uploads, IMAGES,
+                              UploadNotAllowed)
+
 USERNAME="ciaron"
 PASSWORD="default"
 SECRET_KEY = 'development key'
-UPLOAD_FOLDER = '/home/linstead/flask/pandachrome.flask/UPLOADS'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+#UPLOAD_FOLDER = '/home/linstead/flask/pandachrome.flask/UPLOADS'
+#ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+UPLOADED_PHOTOS_DEST = '/home/linstead/flask/pandachrome.flask/UPLOADS'
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['UPLOADED_FILES_DEST'] = '/home/linstead/flask/pandachrome.flask/UPLOADS'
+app.config['UPLOADED_FILES_URL'] = '/files/'
+
+uploaded_photos = UploadSet('photos', IMAGES)
+configure_uploads(app, uploaded_photos)
+
 db = SQLAlchemy(app)
+
+def to_index():
+    return redirect(url_for('new'))
+
+def unique_id():
+    return hex(uuid.uuid4().time)[2:-1]
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -69,6 +86,28 @@ def upload_file():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/new', methods=['GET', 'POST'])
+def new():
+    if request.method == 'POST':
+        photo = request.files.get('photo')
+        title = request.form.get('title')
+        caption = request.form.get('caption')
+        if not (photo and title and caption):
+            flash("You must fill in all the fields")
+        else:
+            try:
+                filename = uploaded_photos.save(photo)
+            except UploadNotAllowed:
+                flash("The upload was not allowed")
+            else:
+                #post = Post(title=title, caption=caption, filename=filename)
+                #post.id = unique_id()
+                #post.store()
+                flash("Upload successful")
+                return to_index()
+    return render_template('new.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
