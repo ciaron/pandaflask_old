@@ -37,13 +37,13 @@ def unique_id():
     return hex(uuid.uuid4().time)[2:-1]
 
 class User(db.Model):
-    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
     pwdhash = db.Column(db.String())
     email = db.Column(db.String(120), unique=True)
     activate = db.Column(db.Boolean)
     created = db.Column(db.DateTime)
+    images = db.relationship('Image', backref='owner', lazy='dynamic')
 
     def __init__(self, username, password, email):
         self.username = username
@@ -56,6 +56,23 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.pwdhash, password)
 
+class Image(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    # owner is the (hopefully logged-in) user who uploads the image
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    added = db.Column(db.DateTime)
+    title = db.Column(db.String(80))
+    filename = db.Column(db.String(80))
+    description = db.Column(db.String(240))
+
+    def __init__(self, title, description, filename, owner_id):
+        self.title = title 
+        self.description = description
+        self.filename = filename
+        self.owner_id = owner_id
+        db.session.add(self)
+        db.session.commit()
+    
 ## Standard Forms
 #class signup_form(Form):
 #    username = TextField('Username', [validators.Required()])
@@ -93,6 +110,7 @@ def new():
         photo = request.files.get('photo')
         title = request.form.get('title')
         description = request.form.get('description')
+    
         if not (photo and title and description):
             flash("You must fill in all the fields")
         else:
@@ -101,13 +119,14 @@ def new():
             except UploadNotAllowed:
                 flash("The upload was not allowed")
             else:
-                #post = Post(title=title, caption=caption, filename=filename)
-                #post.id = unique_id()
-                #post.store()
-                flash("Upload successful")
+                if 'username' in session:
+                    # i.e. logged in
+                    owner = User.query.filter_by(username=session['username']).first()
+                    image = Image(title=title, description=description, filename=filename, owner_id=owner.id)
+                    flash("Upload successful")
                 return to_index()
-    return render_template('new.html')
 
+    return render_template('new.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -123,6 +142,7 @@ def login():
 
         else:
             session['logged_in'] = True
+            session['username'] = request.form['username']
             flash('You were logged in')
             return redirect(url_for('upload_file'))
     return render_template('login.html', error=error)
