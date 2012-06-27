@@ -10,17 +10,13 @@ from werkzeug import generate_password_hash, check_password_hash
 from flaskext.uploads import (UploadSet, configure_uploads, IMAGES,
                               UploadNotAllowed)
 
-USERNAME="ciaron"
-PASSWORD="default"
 SECRET_KEY = 'development key'
-#UPLOAD_FOLDER = '/home/linstead/flask/pandachrome.flask/UPLOADS'
-#ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 UPLOADED_PHOTOS_DEST = '/home/linstead/flask/pandachrome.flask/UPLOADS'
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOADED_FILES_DEST'] = '/home/linstead/flask/pandachrome.flask/UPLOADS'
 app.config['UPLOADED_FILES_URL'] = '/files/'
@@ -95,14 +91,24 @@ def upload_file():
         file = request.files['file']
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(app.config['UPLOADED_FILES_DEST'], filename))
             return redirect(url_for('uploaded_file',
                                     filename=filename))
     return render_template('upload.html')
 
+# require login:
+#@app.route('/project/<int:project_id>/<int:image_id>')
+#@app.route('/project/<int:project_id>')
+#@app.route('/image/<int:image_id>')
+
+# no login required
+#@app.route('/<username>/project/<int:project_id>/<int:image_id>')
+#@app.route('/<username>/project/<int:project_id>')
+#@app.route('/<username>/image/<int:image_id>')
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return send_from_directory(app.config['UPLOADED_FILES_DEST'], filename)
 
 @app.route('/new', methods=['GET', 'POST'])
 def new():
