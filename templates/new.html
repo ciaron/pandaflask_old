@@ -4,20 +4,21 @@
 
 {% block body %}
 
-
   {% if session.logged_in %}
-    <h2>Upload new image</h2>
+     <h2>New Post</h2>
 
 <form action="{{ url_for('new') }}" method=POST enctype=multipart/form-data>
-  <dl>
-    <dt>Title
-      <dd><input type=text name=title>
-    <dt>File
-      <dd><input type=file name=photo>
-    <dt>Description
-      <dd><textarea name=description rows=5 cols=40></textarea>
-  </dl>
-  <p><input type=submit value=Upload>
+<dl>
+<dt>Title
+    <dd><input type=text name=title>
+<dt>File
+    <dd><input type=file name=photo>
+<dt>Description
+    <dd><textarea name=description rows=5 cols=40></textarea>
+</dl>
+
+<p><input type=submit value=Post>
+
 </form>
 
   {% else %}

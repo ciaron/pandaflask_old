@@ -92,8 +92,8 @@ def new():
     if request.method == 'POST':
         photo = request.files.get('photo')
         title = request.form.get('title')
-        caption = request.form.get('caption')
-        if not (photo and title and caption):
+        description = request.form.get('description')
+        if not (photo and title and description):
             flash("You must fill in all the fields")
         else:
             try:
