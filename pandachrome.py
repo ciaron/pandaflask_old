@@ -27,7 +27,7 @@ configure_uploads(app, uploaded_photos)
 db = SQLAlchemy(app)
 
 def to_index():
-    return redirect(url_for('new'))
+    return redirect(url_for('index'))
 
 def unique_id():
     return hex(uuid.uuid4().time)[2:-1]
@@ -54,12 +54,13 @@ class User(db.Model):
 
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # owner is the (hopefully logged-in) user who uploads the image
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     added = db.Column(db.DateTime)
     title = db.Column(db.String(80))
     filename = db.Column(db.String(80))
     description = db.Column(db.String(240))
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
 
     def __init__(self, title, description, filename, owner_id):
         self.title = title 
@@ -86,15 +87,19 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOADED_FILES_DEST'], filename))
-            return redirect(url_for('uploaded_file',
-                                    filename=filename))
-    return render_template('upload.html')
+def index():
+    images = Image.query.all()
+    return render_template('index.html', images=images)
+
+#def upload_file():
+    #if request.method == 'POST':
+    #    file = request.files['file']
+    #    if file and allowed_file(file.filename):
+    #        filename = secure_filename(file.filename)
+    #        file.save(os.path.join(app.config['UPLOADED_FILES_DEST'], filename))
+    #        return redirect(url_for('uploaded_file',
+    #                                filename=filename))
+    #return render_template('upload.html')
 
 # require login:
 #@app.route('/project/<int:project_id>/<int:image_id>')
@@ -150,7 +155,7 @@ def login():
             session['logged_in'] = True
             session['username'] = request.form['username']
             flash('You were logged in')
-            return redirect(url_for('upload_file'))
+            return redirect(url_for('index'))
     return render_template('login.html', error=error)
 
 @app.route('/logout')

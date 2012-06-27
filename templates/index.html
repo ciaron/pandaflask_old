@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block body %}
+
+    <h2>Images wot you 'ave uploaded, innit?</h2>
+
+  <ul class=images>
+  {% for image in images %}
+    <li><a href="uploads/{{ image.filename }}">{{image.title}}</a>: {{ image.description|safe }}</li>
+  {% else %}
+    <li><em>Unbelievable.  No images here so far</em>
+  {% endfor %}
+  </ul>
+
+{% endblock %}
