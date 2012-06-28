@@ -1,6 +1,8 @@
 import os
 import uuid
+from PIL import Image as PImage
 from datetime import datetime
+from functools import wraps
 from flask import Flask, request, redirect, url_for, render_template, session, abort, flash, g
 from flask import send_from_directory
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -32,12 +34,16 @@ def to_index():
 def unique_id():
     return hex(uuid.uuid4().time)[2:-1]
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
     pwdhash = db.Column(db.String())
     email = db.Column(db.String(120), unique=True)
-    activate = db.Column(db.Boolean)
+    activated = db.Column(db.Boolean)
     created = db.Column(db.DateTime)
     images = db.relationship('Image', backref='owner', lazy='dynamic')
 
@@ -70,53 +76,51 @@ class Image(db.Model):
         db.session.add(self)
         db.session.commit()
     
-## Standard Forms
-#class signup_form(Form):
-#    username = TextField('Username', [validators.Required()])
-#    password = PasswordField('Password', [validators.Required(), validators.EqualTo('confirm', message='Passwords must match')])
-#    confirm = PasswordField('Confirm Password', [validators.Required()])
-#    email = TextField('eMail', [validators.Required()])
-#    accept_tos = BooleanField('I accept the TOS', [validators.Required])
-#
-#class login_form(Form):
-#    username = TextField('Username', [validators.Required()])
-#    password = TextField('Password', [validators.Required()])
+###
+# VIEWS
+###
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+# require login:
+@app.route('/project/<int:project_id>/<int:image_id>')
+def projectimage(project_id, image_id):
+    return render_template('test.html', project_id=project_id, image_id=image_id)
+    
+@app.route('/project/<int:project_id>')
+def project(project_id):
+    return render_template('test.html', project_id=project_id)
+    
+@app.route('/image/<int:image_id>')
+def image(image_id):
+    return render_template('test.html', image_id=image_id)
+    
+# no login required
+#@app.route('/<username>/project/<int:project_id>/<int:image_id>')
+#@app.route('/<username>/project/<int:project_id>')
+#@app.route('/<username>/image/<int:image_id>')
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     images = Image.query.all()
     return render_template('index.html', images=images)
 
-#def upload_file():
-    #if request.method == 'POST':
-    #    file = request.files['file']
-    #    if file and allowed_file(file.filename):
-    #        filename = secure_filename(file.filename)
-    #        file.save(os.path.join(app.config['UPLOADED_FILES_DEST'], filename))
-    #        return redirect(url_for('uploaded_file',
-    #                                filename=filename))
-    #return render_template('upload.html')
-
-# require login:
-#@app.route('/project/<int:project_id>/<int:image_id>')
-#@app.route('/project/<int:project_id>')
-#@app.route('/image/<int:image_id>')
-
-# no login required
-#@app.route('/<username>/project/<int:project_id>/<int:image_id>')
-#@app.route('/<username>/project/<int:project_id>')
-#@app.route('/<username>/image/<int:image_id>')
-
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOADED_FILES_DEST'], filename)
 
-@app.route('/new', methods=['GET', 'POST'])
-def new():
+def require_login(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('logged_in') is not None:
+            return f(*args, **kwargs)
+        else:
+            flash('Please log in first...', 'error')
+            return redirect(url_for('login', next=request.url))
+    return decorated_function
+
+@app.route('/upload', methods=['GET', 'POST'])
+@require_login
+def upload():
+
     if request.method == 'POST':
         photo = request.files.get('photo')
         title = request.form.get('title')
@@ -137,32 +141,34 @@ def new():
                     flash("Upload successful")
                 return to_index()
 
-    return render_template('new.html')
+    return render_template('upload.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
-    if request.method == 'POST':
+    if request.method == 'GET':
+        if 'next' in request.args:
+            qs = request.args['next']
+            return render_template('login.html', next=qs)
+    elif request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if not user.check_password(request.form['password']):
             error = "Login failed"
-#        if request.form['username'] != app.config['USERNAME']:
-#            error = 'Invalid username'
-#        elif request.form['password'] != app.config['PASSWORD']:
-#            error = 'Invalid password'
-
         else:
             session['logged_in'] = True
             session['username'] = request.form['username']
             flash('You were logged in')
-            return redirect(url_for('index'))
-    return render_template('login.html', error=error)
+            if 'next' in request.form:
+                return redirect(request.form["next"])
+            else:
+                flash('next not found in request.form')
+                return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
