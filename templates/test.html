@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block body %}
+
+    <h2>test page</h2>
+
+    {% if project_id %}
+        <p>project_id: {{ project_id }}</p>
+    {% endif %}
+    {% if image_id %}
+        <p>image_id: {{ image_id }}</p>
+    {% endif %}
+
+{% endblock %}
