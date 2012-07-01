@@ -1,0 +1,7 @@
+Dependencies:
+
+flask
+flask-uploads
+flask-sqlalchemy
+   (requires python-dev)
+flask-uploads
