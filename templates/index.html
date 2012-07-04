@@ -1,14 +1,28 @@
-{% extends "layout.html" %}
-{% block body %}
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <style type="text/css">
+#leftcolumn { width: 24%; border: 1px solid red; float: left}
+#rightcolumn { width: 74%; border: 1px solid red; float: left}
+.clear { clear: both;}
+    </style>
 
-    <h2>Images wot you 'ave uploaded, innit?</h2>
 
-  <ul class=images>
-  {% for image in images %}
-    <li><a href="uploads/{{ image.filename }}">{{image.title}}</a>: {{ image.description|safe }}</li>
-  {% else %}
-    <li><em>Unbelievable.  No images here so far</em>
-  {% endfor %}
-  </ul>
+</head>
+<body>
+<div id"container">
+<div id="leftcolumn">
+<p>Ciaron Linstead</p>
+<ul>
+<li>project 1</li>
+<li>project 2</li>
+<li>project 3</li>
+<li>project 4</li>
+</ul>
+</div>
+<div id="rightcolumn">
+<img src="{{ url_for('static', filename='hotel.png') }}" width=800 height=600 alt="image goes here"/>
 
-{% endblock %}
+</div>
+<div class"clear"></div>
+</div>
+</body>

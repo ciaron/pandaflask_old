@@ -58,6 +58,20 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.pwdhash, password)
 
+class Project(db.model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    added = db.Column(db.DateTime)
+    title = db.Column(db.String(80))
+    description = db.Column(db.String(240))
+    
+    def __init__(self, title, description, owner_id):
+        self.title = title 
+        self.description = description
+        self.owner_id = owner_id
+        db.session.add(self)
+        db.session.commit()
+    
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -150,6 +164,8 @@ def login():
         if 'next' in request.args:
             qs = request.args['next']
             return render_template('login.html', next=qs)
+        else:
+            return render_template('login.html')
     elif request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if not user.check_password(request.form['password']):
@@ -163,6 +179,7 @@ def login():
             else:
                 flash('next not found in request.form')
                 return redirect(url_for('index'))
+    return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
@@ -171,4 +188,4 @@ def logout():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
