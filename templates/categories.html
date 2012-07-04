@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block title %}New Category{% endblock title %}
+
+{% block body %}
+<h2>categories:</h2>
+
+  <ul class=categories>
+  {% for category in categories %}
+    <li><b>{{ category.title }} </b>
+<form action="{{ url_for('category_delete', category_id=category.id) }}" method=POST>
+<p><input type=submit value="Delete this category">
+(Doesn't delete associated projects or images)
+</form>
+
+  {% else %}
+    <li><em>Unbelievable.  No categories here so far</em>
+  {% endfor %}
+  </ul>
+
+{% if session.logged_in %}
+<h2>New Category</h2>
+<form action="{{ url_for('categories') }}" method=POST>
+<dl>
+<dt>Title
+    <dd><input type=text name=title>
+<dt>Description
+    <dd><textarea name=description rows=5 cols=40></textarea>
+</dl>
+<p><input type=submit value=Add>
+</form>
+{% endif %}
+
+{% endblock body %}

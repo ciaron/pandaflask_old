@@ -38,6 +38,16 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
+def require_login(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('logged_in') is not None:
+            return f(*args, **kwargs)
+        else:
+            flash('Please log in first...', 'error')
+            return redirect(url_for('login', next=request.url))
+    return decorated_function
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
@@ -58,7 +68,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.pwdhash, password)
 
-class Project(db.model):
+class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     added = db.Column(db.DateTime)
@@ -70,6 +80,10 @@ class Project(db.model):
         self.description = description
         self.owner_id = owner_id
         db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
         db.session.commit()
     
 class Image(db.Model):
@@ -99,10 +113,6 @@ class Image(db.Model):
 def projectimage(project_id, image_id):
     return render_template('test.html', project_id=project_id, image_id=image_id)
     
-@app.route('/project/<int:project_id>')
-def project(project_id):
-    return render_template('test.html', project_id=project_id)
-    
 @app.route('/image/<int:image_id>')
 def image(image_id):
     return render_template('test.html', image_id=image_id)
@@ -112,6 +122,46 @@ def image(image_id):
 #@app.route('/<username>/project/<int:project_id>')
 #@app.route('/<username>/image/<int:image_id>')
 
+@app.route('/project/<int:project_id>/delete', methods=['POST'])
+def project_delete(project_id):
+    # TODO method=POST
+    if request.method == 'POST':
+        owner = User.query.filter_by(username=session['username']).first()
+        project = Project.query.filter_by(owner_id=owner.id).filter_by(id=project_id).first()
+        # delete the project
+        project.delete()
+        # get the project list for the template:
+        projects = Project.query.filter_by(owner_id=owner.id)
+        return render_template('projects.html', projects=projects)
+
+    return render_template('index.html')
+            
+@app.route('/project/<int:project_id>')
+def project(project_id):
+    return render_template('test.html', project_id=project_id)
+    
+@app.route('/projects', methods=['GET', 'POST'])
+@require_login
+def projects():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+    
+        if not (title):
+            flash("You must give at least a title")
+        else:
+            if 'username' in session:
+                # i.e. logged in
+                owner = User.query.filter_by(username=session['username']).first()
+                project = Project(title=title, description=description, owner_id=owner.id)
+                flash("successfully created new project " + title)
+            #return to_index()
+            return redirect(url_for('projects'))
+
+    owner = User.query.filter_by(username=session['username']).first()
+    projects = Project.query.filter_by(owner_id=owner.id)
+    return render_template('projects.html', projects=projects)
+    
 @app.route('/', methods=['GET', 'POST'])
 def index():
     images = Image.query.all()
@@ -120,16 +170,6 @@ def index():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOADED_FILES_DEST'], filename)
-
-def require_login(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if session.get('logged_in') is not None:
-            return f(*args, **kwargs)
-        else:
-            flash('Please log in first...', 'error')
-            return redirect(url_for('login', next=request.url))
-    return decorated_function
 
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
