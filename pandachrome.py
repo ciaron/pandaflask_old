@@ -68,6 +68,24 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.pwdhash, password)
 
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    added = db.Column(db.DateTime)
+    title = db.Column(db.String(80))
+    description = db.Column(db.String(240))
+    
+    def __init__(self, title, description, owner_id):
+        self.title = title 
+        self.description = description
+        self.owner_id = owner_id
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+    
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -140,6 +158,28 @@ def project_delete(project_id):
 def project(project_id):
     return render_template('test.html', project_id=project_id)
     
+@app.route('/categories', methods=['GET', 'POST'])
+@require_login
+def categories():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+    
+        if not (title):
+            flash("You must give at least a title")
+        else:
+            if 'username' in session:
+                # i.e. logged in
+                owner = User.query.filter_by(username=session['username']).first()
+                category = Category(title=title, description=description, owner_id=owner.id)
+                flash("successfully created new category " + title)
+            #return to_index()
+            return redirect(url_for('categoriess'))
+
+    owner = User.query.filter_by(username=session['username']).first()
+    categories = Category.query.filter_by(owner_id=owner.id)
+    return render_template('categories.html', categories=categories)
+
 @app.route('/projects', methods=['GET', 'POST'])
 @require_login
 def projects():
