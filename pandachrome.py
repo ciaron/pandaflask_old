@@ -74,6 +74,7 @@ class Category(db.Model):
     added = db.Column(db.DateTime)
     title = db.Column(db.String(80))
     description = db.Column(db.String(240))
+    projects = db.relationship('Project', backref='category', lazy='dynamic')
     
     def __init__(self, title, description, owner_id):
         self.title = title 
@@ -92,11 +93,13 @@ class Project(db.Model):
     added = db.Column(db.DateTime)
     title = db.Column(db.String(80))
     description = db.Column(db.String(240))
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     
-    def __init__(self, title, description, owner_id):
+    def __init__(self, title, description, category_id, owner_id):
         self.title = title 
         self.description = description
         self.owner_id = owner_id
+        self.category_id = category_id
         db.session.add(self)
         db.session.commit()
 
@@ -106,13 +109,14 @@ class Project(db.Model):
     
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     added = db.Column(db.DateTime)
     title = db.Column(db.String(80))
     filename = db.Column(db.String(80))
     description = db.Column(db.String(240))
     width = db.Column(db.Integer)
     height = db.Column(db.Integer)
+
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __init__(self, title, description, filename, owner_id):
         self.title = title 
@@ -140,9 +144,21 @@ def image(image_id):
 #@app.route('/<username>/project/<int:project_id>')
 #@app.route('/<username>/image/<int:image_id>')
 
+@app.route('/category/<int:category_id>/delete', methods=['POST'])
+def category_delete(category_id):
+    if request.method == 'POST':
+        owner = User.query.filter_by(username=session['username']).first()
+        category = Category.query.filter_by(owner_id=owner.id).filter_by(id=category_id).first()
+        # delete the category
+        category.delete()
+        # get the category list for the template:
+        categories = Category.query.filter_by(owner_id=owner.id)
+        return render_template('categories.html', categories=categories)
+
+    return render_template('index.html')
+            
 @app.route('/project/<int:project_id>/delete', methods=['POST'])
 def project_delete(project_id):
-    # TODO method=POST
     if request.method == 'POST':
         owner = User.query.filter_by(username=session['username']).first()
         project = Project.query.filter_by(owner_id=owner.id).filter_by(id=project_id).first()
@@ -150,13 +166,33 @@ def project_delete(project_id):
         project.delete()
         # get the project list for the template:
         projects = Project.query.filter_by(owner_id=owner.id)
-        return render_template('projects.html', projects=projects)
+        categories = Category.query.filter_by(owner_id=owner.id)
+        return render_template('projects.html', projects=projects, categories=categories)
 
     return render_template('index.html')
+
+@app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
+def project_edit(project_id):
+    owner = User.query.filter_by(username=session['username']).first()
+    project = Project.query.filter_by(owner_id=owner.id).filter_by(id=project_id).first()
+    if request.method == 'POST':
+        # edit the project
+        #project.delete()
+        # get the project list for the template:
+        projects = Project.query.filter_by(owner_id=owner.id)
+
+        # show the updated project list
+        return render_template('projects.html', projects=projects)
+
+    categories = Category.query.filter_by(owner_id=owner.id)
+    return render_template('project_edit.html', project=project, categories=categories)
             
 @app.route('/project/<int:project_id>')
 def project(project_id):
-    return render_template('test.html', project_id=project_id)
+    # show project detail page
+    owner = User.query.filter_by(username=session['username']).first()
+    project = Project.query.filter_by(owner_id=owner.id).filter_by(id=project_id).first()
+    return render_template('project.html', project=project)
     
 @app.route('/categories', methods=['GET', 'POST'])
 @require_login
@@ -174,7 +210,7 @@ def categories():
                 category = Category(title=title, description=description, owner_id=owner.id)
                 flash("successfully created new category " + title)
             #return to_index()
-            return redirect(url_for('categoriess'))
+            return redirect(url_for('categories'))
 
     owner = User.query.filter_by(username=session['username']).first()
     categories = Category.query.filter_by(owner_id=owner.id)
@@ -186,6 +222,7 @@ def projects():
     if request.method == 'POST':
         title = request.form.get('title')
         description = request.form.get('description')
+        category_id = request.form.get('category')
     
         if not (title):
             flash("You must give at least a title")
@@ -193,14 +230,15 @@ def projects():
             if 'username' in session:
                 # i.e. logged in
                 owner = User.query.filter_by(username=session['username']).first()
-                project = Project(title=title, description=description, owner_id=owner.id)
-                flash("successfully created new project " + title)
+                project = Project(title=title, description=description, category_id=category_id, owner_id=owner.id)
+                flash("successfully created new project " + title + "category " + category_id)
             #return to_index()
             return redirect(url_for('projects'))
 
     owner = User.query.filter_by(username=session['username']).first()
     projects = Project.query.filter_by(owner_id=owner.id)
-    return render_template('projects.html', projects=projects)
+    categories = Category.query.filter_by(owner_id=owner.id)
+    return render_template('projects.html', projects=projects, categories=categories)
     
 @app.route('/', methods=['GET', 'POST'])
 def index():

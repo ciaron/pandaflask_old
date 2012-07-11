@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block body %}
+
+    <h2>Project details</h2>
+
+    {% if project.id %}
+        <p>project.id: {{ project.id }}</p>
+        <p>project.title: {{ project.title }}</p>
+        <p>project.description: {{ project.description }}</p>
+        <p>project.category_id: {{ project.category_id }}</p>
+    {% endif %}
+
+{% endblock %}

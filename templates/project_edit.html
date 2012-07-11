@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Project{% endblock title %}
+
+{% block body %}
+
+{% if session.logged_in %}
+
+  <h2>Edit this project</h2>
+  <form action="{{ url_for('projects') }}" method=POST>
+    <dl>
+    <dt>Title
+      <dd><input type=text name=title value={{ project.title }}>
+    <dt>Description (optional)
+      <dd><textarea name=description rows=5 cols=40>{{ project.description }}</textarea>
+    <dt>Category (optional)
+
+<label>Category:</label>
+      <select name="category">
+          {% for category in categories %}
+            {% if project.category_id == category.id %}
+              <option selected="selected" value={{ category.title }}>{{category.title}}</option>
+            {% else %}
+              <option value={{ category.title }}>{{category.title}}</option>
+            {% endif %}
+          {% endfor %}√
+      </select>
+
+    </dl>
+    <p><input type=submit value=Save>
+  </form>
+
+  <form action="{{ url_for('project_delete', project_id=project.id) }}" method=POST>
+    <input type=submit value="Delete this project">
+  </form>
+
+{% endif %}
+
+{% endblock body %}
