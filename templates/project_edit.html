@@ -7,27 +7,30 @@
 {% if session.logged_in %}
 
   <h2>Edit this project</h2>
-  <form action="{{ url_for('projects') }}" method=POST>
+
+  <form action="{{ url_for('project_edit', project_id=project.id) }}" method=POST>
     <dl>
     <dt>Title
-      <dd><input type=text name=title value={{ project.title }}>
-    <dt>Description (optional)
+      <dd><input type=text name=title value="{{ project.title }}">
+    <dt>Description
       <dd><textarea name=description rows=5 cols=40>{{ project.description }}</textarea>
-    <dt>Category (optional)
+    <dt>Category
 
-<label>Category:</label>
-      <select name="category">
-          {% for category in categories %}
-            {% if project.category_id == category.id %}
-              <option selected="selected" value={{ category.title }}>{{category.title}}</option>
-            {% else %}
-              <option value={{ category.title }}>{{category.title}}</option>
-            {% endif %}
-          {% endfor %}√
-      </select>
+    <select name="category_id">
+        <option value="">--</option>
+        {% for category in categories %}
+          {% if project.category_id == category.id %}
+            <option selected="selected" value={{ category.id }}>{{ category.title }}</option>
+          {% else %}
+            <option value={{ category.id }}>{{ category.title }}</option>
+          {% endif %}
+        {% endfor %}
+    </select>
 
     </dl>
-    <p><input type=submit value=Save>
+
+    <p><input type=submit value="Save changes">
+
   </form>
 
   <form action="{{ url_for('project_delete', project_id=project.id) }}" method=POST>

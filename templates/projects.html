@@ -8,7 +8,7 @@
   <ul class=projects>
   {% for project in projects %}
 
-    <li><b>{{ project.title }} </b><a href="{{ url_for('project_edit', project_id=project.id) }}">edit</a>
+    <li><b>{{ project.title }} </b><a href="{{ url_for('project_edit', project_id=project.id) }}">edit</a> <a href="{{ url_for('project', project_id=project.id) }}">show</a>
     
     <!-- delete -->
     <form action="{{ url_for('project_delete', project_id=project.id) }}" method=POST>
@@ -31,14 +31,11 @@
       <dd><textarea name=description rows=5 cols=40></textarea>
     <dt>Category (optional)
 
-      <select name="category">
+      <select name="category_id">
+          <option value="">--</option>
           {% for category in categories %}
-            <option value={{ category.id }}>{{category.title}}</option>
+              <option value={{ category.id }}>{{category.title}}</option>
           {% endfor %}
-          <option selected="selected" value=nocat>--</option>
-          <option value=cat1>cat1</option>
-          <option value=cat2>cat2</option>
-          <option value=cat3>cat3</option>
       </select>
 
     </dl>

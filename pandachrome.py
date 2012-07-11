@@ -175,17 +175,24 @@ def project_delete(project_id):
 def project_edit(project_id):
     owner = User.query.filter_by(username=session['username']).first()
     project = Project.query.filter_by(owner_id=owner.id).filter_by(id=project_id).first()
+    categories = Category.query.filter_by(owner_id=owner.id)
+
     if request.method == 'POST':
         # edit the project
-        #project.delete()
+        project.title = request.form.get('title') 
+        project.description = request.form.get('description') 
+        project.category_id = request.form.get('category_id') 
+        db.session.commit()
+
         # get the project list for the template:
         projects = Project.query.filter_by(owner_id=owner.id)
 
         # show the updated project list
-        return render_template('projects.html', projects=projects)
+        #return render_template('projects.html', projects=projects, categories=categories)
+        return redirect(url_for('projects'))
 
-    categories = Category.query.filter_by(owner_id=owner.id)
-    return render_template('project_edit.html', project=project, categories=categories)
+    elif request.method == 'GET':
+        return render_template('project_edit.html', project=project, categories=categories)
             
 @app.route('/project/<int:project_id>')
 def project(project_id):
@@ -222,7 +229,7 @@ def projects():
     if request.method == 'POST':
         title = request.form.get('title')
         description = request.form.get('description')
-        category_id = request.form.get('category')
+        category_id = request.form.get('category_id')
     
         if not (title):
             flash("You must give at least a title")
@@ -231,7 +238,7 @@ def projects():
                 # i.e. logged in
                 owner = User.query.filter_by(username=session['username']).first()
                 project = Project(title=title, description=description, category_id=category_id, owner_id=owner.id)
-                flash("successfully created new project " + title + "category " + category_id)
+                flash("successfully created new project " + title + ", category " + category_id)
             #return to_index()
             return redirect(url_for('projects'))
 
